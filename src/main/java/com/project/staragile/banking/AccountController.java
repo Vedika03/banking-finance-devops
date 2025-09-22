@@ -18,20 +18,21 @@ public class AccountController {
 
     // Update Account
     @PutMapping("/updateAccount/{accountNo}")
-    public Account updateAccount(@PathVariable int accountNo, @RequestBody Account account){
+    public Account updateAccount(@PathVariable String accountNo, @RequestBody Account account){
         return accountService.updateAccount(accountNo, account);
     }
 
     // View Policy
     @GetMapping("/viewPolicy/{accountNo}")
-    public Account viewPolicy(@PathVariable int accountNo){
+    public Account viewPolicy(@PathVariable String accountNo){
         return accountService.getAccountDetails(accountNo);
     }
 
     // Delete Policy
     @DeleteMapping("/deletePolicy/{accountNo}")
-    public String deletePolicy(@PathVariable int accountNo){
+    public String deletePolicy(@PathVariable String accountNo){
         accountService.deleteAccount(accountNo);
         return "Account deleted successfully";
     }
 }
+	
