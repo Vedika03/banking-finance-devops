@@ -1,18 +1,49 @@
 package com.project.staragile.banking;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import java.time.LocalDate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
-@Entity
-public class Account {
+import java.util.Optional;
 
-    @Id
-    private String accountNo;      // matches path variable
+@Service
+public class AccountService {
 
-    private String accountName;
-    private String policyType;     // renamed from accountType
-    private double sumInsured;     // renamed from balance
-    private LocalDate startDate;   // policy start date
+    @Autowired
+    private AccountRepository accountRepository;
 
-    public Account() {}
+    // Create / Register new account
+    public Account registerAccount(Account account) {
+        if (accountRepository.existsById(account.getAccountNo())) {
+            throw new RuntimeException("Account already exists with accountNo: " + account.getAccountNo());
+        }
+        return accountRepository.save(account);
+    }
+
+    // Update existing account
+    public Account updateAccount(String accountNo, Account updatedAccount) {
+        Optional<Account> optional = accountRepository.findById(accountNo);
+        if (!optional.isPresent()) {
+            throw new RuntimeException("Account not found with accountNo: " + accountNo);
+        }
+        Account existing = optional.get();
+        existing.setAccountName(updatedAccount.getAccountName());
+        existing.setPolicyType(updatedAccount.getPolicyType());
+        existing.setSumInsured(updatedAccount.getSumInsured());
+        existing.setStartDate(updatedAccount.getStartDate());
+        return accountRepository.save(existing);
+    }
+
+    // Get account details
+    public Account getAccountDetails(String accountNo) {
+        return accountRepository.findById(accountNo)
+                .orElseThrow(() -> new RuntimeException("Account not found with accountNo: " + accountNo));
+    }
+
+    // Delete account
+    public void deleteAccount(String accountNo) {
+        if (!accountRepository.existsById(accountNo)) {
+            throw new RuntimeException("Account not found with accountNo: " + accountNo);
+        }
+        accountRepository.deleteById(accountNo);
+    }
+}
