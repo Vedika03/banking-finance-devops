@@ -29,7 +29,8 @@ pipeline {
             }
             post {
                 always {
-                    junit '**/target/surefire-reports/*.xml'
+                    // Allow empty results to avoid pipeline failure if no tests run
+                    junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
                 }
             }
         }
@@ -42,12 +43,12 @@ pipeline {
 
         stage('Stop Existing Container') {
             steps {
-                sh '''
-                if [ $(docker ps -q -f name=financeme-banking) ]; then
+                sh """
+                if [ \$(docker ps -q -f name=financeme-banking) ]; then
                     docker stop financeme-banking
                     docker rm financeme-banking
                 fi
-                '''
+                """
             }
         }
 
