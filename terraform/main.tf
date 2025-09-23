@@ -12,6 +12,41 @@ resource "aws_vpc" "banking_vpc" {
   }
 }
 
+# Internet Gateway
+resource "aws_internet_gateway" "banking_igw" {
+  vpc_id = aws_vpc.banking_vpc.id
+
+  tags = {
+    Name = "banking-igw"
+  }
+}
+
+# Route Table
+resource "aws_route_table" "banking_rt" {
+  vpc_id = aws_vpc.banking_vpc.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.banking_igw.id
+  }
+
+  tags = {
+    Name = "banking-rt"
+  }
+}
+
+# Associate route table with subnets
+resource "aws_route_table_association" "subnet1_assoc" {
+  subnet_id      = aws_subnet.subnet1.id
+  route_table_id = aws_route_table.banking_rt.id
+}
+
+resource "aws_route_table_association" "subnet2_assoc" {
+  subnet_id      = aws_subnet.subnet2.id
+  route_table_id = aws_route_table.banking_rt.id
+}
+
+
 # Subnet 1
 resource "aws_subnet" "subnet1" {
   vpc_id                  = aws_vpc.banking_vpc.id
