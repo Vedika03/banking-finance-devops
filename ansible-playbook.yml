@@ -1,9 +1,10 @@
 ---
-- name: Configure Docker and deploy banking app container on EC2 (Production-ready)
+- name: Configure Docker and deploy banking app container on EC2
   hosts: all
   become: true
   connection: ssh
   vars:
+    ubuntu_codename: focal  # Override 'noble' to supported Ubuntu version
     DOCKER_IMAGE: finance-me
     DOCKER_TAG: "1.0"
     APP_PORT_HOST: "8084"
@@ -46,7 +47,7 @@
 
     - name: Add Docker official apt repository
       apt_repository:
-        repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu {{ ansible_lsb.codename }} stable"
+        repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu {{ ubuntu_codename }} stable"
         filename: docker
         state: present
 
