@@ -4,68 +4,45 @@
   connection: local
   become: true
 
-  vars:
-    app_image: "financeme-banking:latest"
-    app_container: "financeme-banking"
-    app_port: "8081"
-
   tasks:
-    ##################################################################
-    # Docker Installation
-    ##################################################################
-    - name: Remove any old Docker repo definitions
-      shell: |
-        rm -f /etc/apt/sources.list.d/docker*.list || true
-        sed -i '/download.docker.com/d' /etc/apt/sources.list || true
-
-    - name: Ensure keyrings directory exists
-      file:
-        path: /etc/apt/keyrings
-        state: directory
-        mode: '0755'
-
-    - name: Download Docker GPG key
-      get_url:
-        url: https://download.docker.com/linux/ubuntu/gpg
-        dest: /etc/apt/keyrings/docker.asc
-        mode: '0644'
-        force: true
-
-    - name: Add Docker apt repository (Ubuntu {{ ansible_distribution_release }})
-      copy:
-        dest: /etc/apt/sources.list.d/docker.list
-        content: |
-          deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
-        mode: '0644'
-
     - name: Update apt cache
       apt:
         update_cache: yes
 
-    - name: Install Docker CE
+    - name: Install Docker using default Ubuntu repo
       apt:
         name:
-          - docker-ce
-          - docker-ce-cli
-          - containerd.io
+          - docker.io
         state: present
 
-    - name: Start and enable Docker service
+    - name: Install supporting tools
+      apt:
+        name:
+          - python3-pip
+        state: present
+
+    - name: Install docker SDK for python
+      pip:
+        name: docker
+
+    - name: Ensure Docker service is running
       systemd:
         name: docker
         state: started
         enabled: yes
 
-    ##################################################################
-    # Application Deployment
-    ##################################################################
-    - name: Remove old container if exists
-      shell: |
-        if [ "$(docker ps -aq -f name={{ app_container }})" ]; then
-          docker rm -f {{ app_container }}
-        fi
-      ignore_errors: true
+    - name: Build Docker image for Spring Boot app
+      community.docker.docker_image:
+        build:
+          path: "{{ playbook_dir }}"
+        name: financeme-banking
+        tag: latest
 
-    - name: Run Spring Boot container
-      shell: |
-        docker run -d --name {{ app_container }} -p {{ app_port }}:8081 {{ app_image }}
+    - name: Run Docker container for Spring Boot app
+      community.docker.docker_container:
+        name: financeme-banking
+        image: financeme-banking:latest
+        state: started
+        restart_policy: always
+        published_ports:
+          - "8081:8081"
