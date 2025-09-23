@@ -42,12 +42,12 @@ pipeline {
 
         stage('Stop Existing Container') {
             steps {
-                sh """
-                if [ \\$(docker ps -q -f name=financeme-banking) ]; then
+                sh '''
+                if [ $(docker ps -q -f name=financeme-banking) ]; then
                     docker stop financeme-banking
                     docker rm financeme-banking
                 fi
-                """
+                '''
             }
         }
 
