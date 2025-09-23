@@ -1,22 +1,19 @@
 ---
 - name: Configure Docker and deploy banking app container
-  hosts: localhost
+  hosts: all
   become: true
-  connection: local
-
   vars:
-    app_name: finance-me
-    app_port: 8081
-    docker_image: financeme-banking:latest
-    jar_file: target/banking-0.0.1-SNAPSHOT.jar
-
+    DOCKER_IMAGE: finance-me
+    DOCKER_TAG: "1.0"
+    APP_PORT_HOST: "8084"
+    APP_PORT_CONTAINER: "8081"
   tasks:
 
     - name: Update apt cache
       apt:
         update_cache: yes
 
-    - name: Install required packages for Docker
+    - name: Install required packages for Docker dependencies
       apt:
         name:
           - apt-transport-https
@@ -25,23 +22,12 @@
           - software-properties-common
         state: present
 
-    - name: Add Docker GPG key
-      apt_key:
-        url: https://download.docker.com/linux/ubuntu/gpg
-        state: present
+    - name: Install Docker using official convenience script
+      shell: curl -fsSL https://get.docker.com | sh
+      args:
+        executable: /bin/bash
 
-    - name: Add Docker apt repository
-      apt_repository:
-        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable
-        state: present
-
-    - name: Install Docker Engine
-      apt:
-        name: docker-ce
-        state: present
-        update_cache: yes
-
-    - name: Start and enable Docker service
+    - name: Ensure Docker service is running
       systemd:
         name: docker
         state: started
@@ -49,24 +35,23 @@
 
     - name: Remove old Docker container if exists
       docker_container:
-        name: "{{ app_name }}"
+        name: "{{ DOCKER_IMAGE }}"
         state: absent
-        force_kill: yes
+      ignore_errors: yes
 
-    - name: Build Docker image from local jar
+    - name: Build Docker image from local code
       docker_image:
-        path: .
-        name: "{{ docker_image.split(':')[0] }}"
-        tag: "{{ docker_image.split(':')[1] }}"
-        buildargs:
-          JAR_FILE: "{{ jar_file }}"
-        force: yes
+        name: "{{ DOCKER_IMAGE }}"
+        tag: "{{ DOCKER_TAG }}"
+        build:
+          path: "{{ playbook_dir }}"
+        source: build
 
     - name: Run banking app container
       docker_container:
-        name: "{{ app_name }}"
-        image: "{{ docker_image }}"
+        name: "{{ DOCKER_IMAGE }}"
+        image: "{{ DOCKER_IMAGE }}:{{ DOCKER_TAG }}"
         state: started
         restart_policy: always
         published_ports:
-          - "{{ app_port }}:8081"
+          - "{{ APP_PORT_HOST }}:{{ APP_PORT_CONTAINER }}"
