@@ -1,16 +1,65 @@
-- name : Configure Docker on EC2 Instances
-  hosts : all
+---
+- name: Configure Docker and deploy banking app container locally
+  hosts: local
   become: true
-  connection : ssh
-  tasks : 
-  - name: updating apt
-    command : sudo apt-get update
+  connection: local
+  tasks:
 
-  - name : Install Docker
-    command : sudo apt-get install -y docker.io
+    - name: Update apt cache
+      apt:
+        update_cache: yes
 
-  - name : Start Docker Service
-    command : sudo systemctl start docker
+    - name: Install required packages for Docker
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+        state: present
 
-  - name: Deploy Docker Container
-    command: docker run -itd -p 8084:8081 shubhamkushwah123/finance-me:1.0
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker apt repository
+      apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable
+        state: present
+
+    - name: Install Docker Engine
+      apt:
+        name: docker-ce
+        state: present
+        update_cache: yes
+
+    - name: Start and enable Docker service
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Stop and remove existing Docker container if running
+      shell: |
+        if [ "$(docker ps -q -f name=financeme-banking)" ]; then
+          docker stop financeme-banking
+          docker rm financeme-banking
+        fi
+      ignore_errors: yes
+
+    - name: Build Docker image from local code
+      docker_image:
+        path: /home/ubuntu/banking-finance-devops
+        name: financeme-banking
+        tag: latest
+        state: present
+
+    - name: Run banking app container
+      docker_container:
+        name: financeme-banking
+        image: financeme-banking:latest
+        state: started
+        restart_policy: always
+        published_ports:
+          - "8081:8081"
