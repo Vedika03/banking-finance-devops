@@ -5,6 +5,16 @@
   become: true
 
   tasks:
+    - name: Remove old Docker repo (if exists)
+      file:
+        path: /etc/apt/sources.list.d/docker.list
+        state: absent
+
+    - name: Remove old keyring (if exists)
+      file:
+        path: /etc/apt/trusted.gpg.d/docker.gpg
+        state: absent
+
     - name: Update apt cache
       apt:
         update_cache: yes
