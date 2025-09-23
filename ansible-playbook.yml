@@ -5,31 +5,14 @@
   become: true
 
   tasks:
-    - name: Remove old Docker repo (if exists)
-      file:
-        path: /etc/apt/sources.list.d/docker.list
-        state: absent
+    - name: Remove any old Docker repo definitions
+      shell: |
+        rm -f /etc/apt/sources.list.d/docker*.list
+        sed -i '/download.docker.com/d' /etc/apt/sources.list
+      args:
+        warn: false
 
-    - name: Remove old keyring (if exists)
-      file:
-        path: /etc/apt/trusted.gpg.d/docker.gpg
-        state: absent
-
-    - name: Update apt cache
-      apt:
-        update_cache: yes
-
-    - name: Install prerequisite packages
-      apt:
-        name:
-          - apt-transport-https
-          - ca-certificates
-          - curl
-          - gnupg
-          - lsb-release
-        state: present
-
-    - name: Create keyrings directory
+    - name: Ensure keyrings directory exists
       file:
         path: /etc/apt/keyrings
         state: directory
@@ -40,14 +23,16 @@
         url: https://download.docker.com/linux/ubuntu/gpg
         dest: /etc/apt/keyrings/docker.asc
         mode: '0644'
+        force: true
 
-    - name: Add Docker repository
-      apt_repository:
-        repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
-        state: present
-        filename: docker
+    - name: Add Docker apt repository (Ubuntu {{ ansible_distribution_release }})
+      copy:
+        dest: /etc/apt/sources.list.d/docker.list
+        content: |
+          deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
+        mode: '0644'
 
-    - name: Update apt cache after adding Docker repo
+    - name: Update apt cache
       apt:
         update_cache: yes
 
