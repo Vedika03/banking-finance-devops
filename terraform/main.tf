@@ -33,7 +33,7 @@ resource "aws_db_instance" "bankingdb" {
   instance_class          = "db.t3.micro"
   username                = "admin"
   password                = "Admin12345!"   # ⚠️ for demo, use SSM in real projects
-  db_subnet_group_name    = "subnet-0cd43398215188505"
+  db_subnet_group_name    = "default"
   vpc_security_group_ids  = [aws_security_group.rds_sg.id]
   publicly_accessible     = true
   skip_final_snapshot     = true
