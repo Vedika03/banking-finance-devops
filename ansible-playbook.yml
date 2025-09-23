@@ -35,7 +35,7 @@
     - name: Build Docker image for Spring Boot app
       community.docker.docker_image:
         build:
-          path: "{{ playbook_dir }}"
+          path: "/home/ubuntu/banking-finance-devops"
         name: financeme-banking
         tag: latest
 
