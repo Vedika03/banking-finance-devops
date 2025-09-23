@@ -1,6 +1,6 @@
 ---
 - name: Setup Docker and deploy Spring Boot microservice
-  hosts: local
+  hosts: localhost
   connection: local
   become: true
 
