@@ -1,58 +1,70 @@
----
-- name: Setup Docker and deploy Spring Boot microservice
-  hosts: localhost
-  connection: local
-  become: true
+pipeline {
+    agent any
 
-  tasks:
-    - name: Update apt cache
-      apt:
-        update_cache: yes
+    environment {
+        // Replace with your actual GitHub credentials ID in Jenkins
+        GIT_CREDENTIALS = 'git'
+        DOCKER_IMAGE = 'financeme-banking:latest'
+        APP_PORT = '8081'
+    }
 
-    - name: Remove conflicting containerd.io package
-      apt:
-        name: containerd.io
-        state: absent
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git branch: 'main',
+                    url: 'https://github.com/Vedika03/banking-finance-devops.git',
+                    credentialsId: "${GIT_CREDENTIALS}"
+            }
+        }
 
-    - name: Install Docker using default Ubuntu repo
-      apt:
-        name: docker.io
-        state: present
+        stage('Build') {
+            steps {
+                sh 'mvn clean package'
+            }
+        }
 
-    - name: Install supporting tools
-      apt:
-        name:
-          - python3-pip
-        state: present
+        stage('Run Tests') {
+            steps {
+                sh 'mvn test'
+            }
+            post {
+                always {
+                    junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml'
+                }
+            }
+        }
 
-    - name: Install docker SDK for python
-      pip:
-        name: docker
+        stage('Build Docker Image') {
+            steps {
+                sh "docker build -t ${DOCKER_IMAGE} ."
+            }
+        }
 
-    - name: Ensure Docker service is running
-      systemd:
-        name: docker
-        state: started
-        enabled: yes
+        stage('Stop Existing Container') {
+            steps {
+                sh '''
+                if [ $(docker ps -aq -f name=financeme-banking) ]; then
+                    docker stop financeme-banking || true
+                    docker rm financeme-banking || true
+                fi
+                '''
+            }
+        }
 
-    - name: Build Docker image for Spring Boot app
-      community.docker.docker_image:
-        build:
-          path: "{{ playbook_dir }}"
-        name: financeme-banking
-        tag: latest
 
-    - name: Stop old container if exists
-      community.docker.docker_container:
-        name: financeme-banking
-        state: absent
-      ignore_errors: true
+        stage('Run Docker Container') {
+            steps {
+                sh "docker run -d -p ${APP_PORT}:${APP_PORT} --name financeme-banking ${DOCKER_IMAGE}"
+            }
+        }
+    }
 
-    - name: Run Docker container for Spring Boot app
-      community.docker.docker_container:
-        name: financeme-banking
-        image: financeme-banking:latest
-        state: started
-        restart_policy: always
-        published_ports:
-          - "8081:8081"
+    post {
+        success {
+            echo "Pipeline completed successfully!"
+        }
+        failure {
+            echo "Pipeline failed. Check the logs!"
+        }
+    }
+}
