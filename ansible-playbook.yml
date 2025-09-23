@@ -1,41 +1,88 @@
 ---
-- name: Configure Docker and deploy banking app container on EC2
+- name: Configure Docker and deploy banking app container on EC2 (Production-ready)
   hosts: all
   become: true
-  connection: local
-
+  connection: ssh
+  vars:
+    DOCKER_IMAGE: finance-me
+    DOCKER_TAG: "1.0"
+    APP_PORT_HOST: "8084"
+    APP_PORT_CONTAINER: "8081"
   tasks:
-    - name: Update apt cache
+
+    - name: Remove old Docker repo list if exists
+      file:
+        path: /etc/apt/sources.list.d/docker.list
+        state: absent
+      ignore_errors: yes
+
+    - name: Remove old Docker keyring if exists
+      file:
+        path: /etc/apt/keyrings/docker.gpg
+        state: absent
+      ignore_errors: yes
+
+    - name: Install prerequisite packages
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+        state: present
+        update_cache: yes
+
+    - name: Create docker keyrings directory
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+
+    - name: Add Docker GPG key
+      get_url:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        dest: /etc/apt/keyrings/docker.gpg
+        mode: '0644'
+
+    - name: Add Docker official apt repository
+      apt_repository:
+        repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu {{ ansible_lsb.codename }} stable"
+        filename: docker
+        state: present
+
+    - name: Update apt cache after repo addition
       apt:
         update_cache: yes
 
-    - name: Install Docker from Ubuntu repo
+    - name: Install Docker CE
       apt:
-        name: docker.io
+        name: docker-ce
         state: present
 
-    - name: Start and enable Docker service
+    - name: Ensure Docker service started and enabled
       systemd:
         name: docker
         state: started
         enabled: yes
 
     - name: Remove old Docker container if exists
-      command: docker rm -f finance-me
+      docker_container:
+        name: "{{ DOCKER_IMAGE }}"
+        state: absent
       ignore_errors: yes
 
-    - name: Build Docker image from local code
+    - name: Pull Docker image "{{ DOCKER_IMAGE }}:{{ DOCKER_TAG }}"
       docker_image:
-        path: .
-        name: finance-me
-        tag: "1.0"
-        state: present
+        name: "{{ DOCKER_IMAGE }}"
+        tag: "{{ DOCKER_TAG }}"
+        source: pull
+      ignore_errors: yes
 
     - name: Run banking app container
       docker_container:
-        name: finance-me
-        image: finance-me:1.0
+        name: "{{ DOCKER_IMAGE }}"
+        image: "{{ DOCKER_IMAGE }}:{{ DOCKER_TAG }}"
         state: started
         restart_policy: always
         published_ports:
-          - "8084:8081"
+          - "{{ APP_PORT_HOST }}:{{ APP_PORT_CONTAINER }}"
