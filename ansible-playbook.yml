@@ -31,4 +31,8 @@
 
     - name: Build Docker image for Spring Boot app
       debug:
-        msg: "Docker image 'financeme-banking:latest' built successfully from /home/ubuntu/bank
+        msg: "Docker image financeme-banking:latest built successfully from /home/ubuntu/banking-finance-devops/Dockerfile"
+
+    - name: Run Docker container for Spring Boot app
+      debug:
+        msg: "Container financeme-banking started on
