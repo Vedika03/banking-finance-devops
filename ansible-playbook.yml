@@ -1,21 +1,41 @@
-- name: Create apt keyrings directory
-  file:
-    path: /etc/apt/keyrings
-    state: directory
-    mode: '0755'
+---
+- name: Configure Docker and deploy banking app container on EC2
+  hosts: all
+  become: true
+  connection: local
 
-- name: Download Docker GPG key
-  get_url:
-    url: https://download.docker.com/linux/ubuntu/gpg
-    dest: /etc/apt/keyrings/docker.gpg
-    mode: '0644'
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
 
-- name: Add Docker official apt repository with signed-by key option
-  apt_repository:
-    repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu {{ ubuntu_codename }} stable"
-    filename: docker
-    state: present
+    - name: Install Docker from Ubuntu repo
+      apt:
+        name: docker.io
+        state: present
 
-- name: Update apt cache after repo addition
-  apt:
-    update_cache: yes
+    - name: Start and enable Docker service
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Remove old Docker container if exists
+      command: docker rm -f finance-me
+      ignore_errors: yes
+
+    - name: Build Docker image from local code
+      docker_image:
+        path: .
+        name: finance-me
+        tag: "1.0"
+        state: present
+
+    - name: Run banking app container
+      docker_container:
+        name: finance-me
+        image: finance-me:1.0
+        state: started
+        restart_policy: always
+        published_ports:
+          - "8084:8081"
