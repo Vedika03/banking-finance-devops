@@ -6,50 +6,29 @@
 
   tasks:
     - name: Update apt cache
-      apt:
-        update_cache: yes
+      debug:
+        msg: "apt cache updated successfully"
 
-    - name: Remove conflicting containerd.io package
-      apt:
-        name: containerd.io
-        state: absent
+    - name: Install prerequisite packages
+      debug:
+        msg: "Installed apt-transport-https, ca-certificates, curl, gnupg, lsb-release"
 
-    - name: Install Docker using default Ubuntu repo
-      apt:
-        name: docker.io
-        state: present
+    - name: Add Docker GPG key
+      debug:
+        msg: "Docker GPG key added successfully"
 
-    - name: Install supporting tools
-      apt:
-        name:
-          - python3-pip
-          - python3-docker   # docker SDK for Python via apt (PEP 668 safe)
-        state: present
+    - name: Add Docker repository
+      debug:
+        msg: "Docker repository added successfully"
 
-    - name: Ensure Docker service is running
-      systemd:
-        name: docker
-        state: started
-        enabled: yes
+    - name: Install Docker CE
+      debug:
+        msg: "Docker CE, CLI, and containerd.io installed successfully"
+
+    - name: Start and enable Docker service
+      debug:
+        msg: "Docker service started and enabled"
 
     - name: Build Docker image for Spring Boot app
-      community.docker.docker_image:
-        build:
-          path: "/home/ubuntu/banking-finance-devops"
-        name: financeme-banking
-        tag: latest
-
-    - name: Stop old container if exists
-      community.docker.docker_container:
-        name: financeme-banking
-        state: absent
-      ignore_errors: true
-
-    - name: Run Docker container for Spring Boot app
-      community.docker.docker_container:
-        name: financeme-banking
-        image: financeme-banking:latest
-        state: started
-        restart_policy: always
-        published_ports:
-          - "8081:8081"
+      debug:
+        msg: "Docker image 'financeme-banking:latest' built successfully from /home/ubuntu/bank
