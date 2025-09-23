@@ -38,9 +38,11 @@
 
     - name: Build Docker image from local code
       docker_image:
-        path: .
         name: finance-me
         tag: "1.0"
+        build:
+          path: .
+        source: build
         state: present
 
     - name: Run banking app container
@@ -51,3 +53,11 @@
         restart_policy: always
         published_ports:
           - "8084:8081"
+
+    - name: Verify container is running
+      command: docker ps --filter "name=finance-me" --format "{{.Names}}: {{.Status}}"
+      register: docker_status
+
+    - name: Show container status
+      debug:
+        msg: "{{ docker_status.stdout }}"
