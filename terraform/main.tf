@@ -35,18 +35,6 @@ resource "aws_route_table" "banking_rt" {
   }
 }
 
-# Associate route table with subnets
-resource "aws_route_table_association" "subnet1_assoc" {
-  subnet_id      = aws_subnet.subnet1.id
-  route_table_id = aws_route_table.banking_rt.id
-}
-
-resource "aws_route_table_association" "subnet2_assoc" {
-  subnet_id      = aws_subnet.subnet2.id
-  route_table_id = aws_route_table.banking_rt.id
-}
-
-
 # Subnet 1
 resource "aws_subnet" "subnet1" {
   vpc_id                  = aws_vpc.banking_vpc.id
@@ -69,6 +57,17 @@ resource "aws_subnet" "subnet2" {
   tags = {
     Name = "banking-subnet-2"
   }
+}
+
+# Associate route table with subnets
+resource "aws_route_table_association" "subnet1_assoc" {
+  subnet_id      = aws_subnet.subnet1.id
+  route_table_id = aws_route_table.banking_rt.id
+}
+
+resource "aws_route_table_association" "subnet2_assoc" {
+  subnet_id      = aws_subnet.subnet2.id
+  route_table_id = aws_route_table.banking_rt.id
 }
 
 # DB Subnet Group
@@ -113,8 +112,8 @@ resource "aws_db_instance" "bankdb" {
   password             = "bankdbpass"
   parameter_group_name = "default.mysql8.0"
   skip_final_snapshot  = true
-  publicly_accessible = true
-
+  publicly_accessible  = true
+  
 
   db_subnet_group_name   = aws_db_subnet_group.bankingdb_subnet_group.name
   vpc_security_group_ids = [aws_security_group.rds_sg.id]
