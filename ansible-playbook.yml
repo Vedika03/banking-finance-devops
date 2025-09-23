@@ -1,10 +1,18 @@
 ---
-- name: Install Docker on local machine
+- name: Setup Docker and deploy Spring Boot microservice
   hosts: local
   connection: local
   become: true
 
+  vars:
+    app_image: "financeme-banking:latest"
+    app_container: "financeme-banking"
+    app_port: "8081"
+
   tasks:
+    ##################################################################
+    # Docker Installation
+    ##################################################################
     - name: Remove any old Docker repo definitions
       shell: |
         rm -f /etc/apt/sources.list.d/docker*.list
@@ -49,3 +57,17 @@
         name: docker
         state: started
         enabled: yes
+
+    ##################################################################
+    # Application Deployment
+    ##################################################################
+    - name: Remove old container if exists
+      shell: |
+        if [ "$(docker ps -aq -f name={{ app_container }})" ]; then
+          docker rm -f {{ app_container }}
+        fi
+      ignore_errors: true
+
+    - name: Run Spring Boot container
+      shell: |
+        docker run -d --name {{ app_container }} -p {{ app_port }}:8081 {{ app_image }}
