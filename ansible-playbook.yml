@@ -9,21 +9,22 @@
       apt:
         update_cache: yes
 
+    - name: Remove conflicting containerd.io package
+      apt:
+        name: containerd.io
+        state: absent
+
     - name: Install Docker using default Ubuntu repo
       apt:
-        name:
-          - docker.io
+        name: docker.io
         state: present
 
     - name: Install supporting tools
       apt:
         name:
           - python3-pip
+          - python3-docker   # docker SDK for Python via apt (PEP 668 safe)
         state: present
-
-    - name: Install docker SDK for python
-      pip:
-        name: docker
 
     - name: Ensure Docker service is running
       systemd:
@@ -37,6 +38,12 @@
           path: "{{ playbook_dir }}"
         name: financeme-banking
         tag: latest
+
+    - name: Stop old container if exists
+      community.docker.docker_container:
+        name: financeme-banking
+        state: absent
+      ignore_errors: true
 
     - name: Run Docker container for Spring Boot app
       community.docker.docker_container:
