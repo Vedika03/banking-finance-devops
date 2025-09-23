@@ -15,10 +15,8 @@
     ##################################################################
     - name: Remove any old Docker repo definitions
       shell: |
-        rm -f /etc/apt/sources.list.d/docker*.list
-        sed -i '/download.docker.com/d' /etc/apt/sources.list
-      args:
-        warn: false
+        rm -f /etc/apt/sources.list.d/docker*.list || true
+        sed -i '/download.docker.com/d' /etc/apt/sources.list || true
 
     - name: Ensure keyrings directory exists
       file:
