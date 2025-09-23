@@ -1,38 +1,73 @@
 ---
-- name: Setup Docker and deploy Spring Boot microservice
-  hosts: localhost
+- name: Deploy FinanceMe Banking App
+  hosts: local
   connection: local
   become: true
 
   tasks:
-    - name: Update apt cache
-      debug:
-        msg: "apt cache updated successfully"
-
-    - name: Install prerequisite packages
-      debug:
-        msg: "Installed apt-transport-https, ca-certificates, curl, gnupg, lsb-release"
+    - name: Ensure prerequisites are installed
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+        state: present
+        update_cache: yes
 
     - name: Add Docker GPG key
-      debug:
-        msg: "Docker GPG key added successfully"
+      ansible.builtin.shell: |
+        mkdir -p /etc/apt/keyrings
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+      args:
+        creates: /etc/apt/keyrings/docker.gpg
 
-    - name: Add Docker repository
-      debug:
-        msg: "Docker repository added successfully"
+    - name: Add Docker repo
+      copy:
+        dest: /etc/apt/sources.list.d/docker.list
+        content: |
+          deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
 
-    - name: Install Docker CE
-      debug:
-        msg: "Docker CE, CLI, and containerd.io installed successfully"
+    - name: Install Docker engine
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+        state: present
+        update_cache: yes
 
-    - name: Start and enable Docker service
-      debug:
-        msg: "Docker service started and enabled"
+    - name: Start and enable Docker
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
 
-    - name: Build Docker image for Spring Boot app
-      debug:
-        msg: "Docker image financeme-banking:latest built successfully from /home/ubuntu/banking-finance-devops/Dockerfile"
+    - name: Remove old container if exists
+      command: docker rm -f finance-me
+      ignore_errors: yes
 
-    - name: Run Docker container for Spring Boot app
-      debug:
-        msg: "Container financeme-banking started on
+    - name: Build Docker image from app code
+      community.docker.docker_image:
+        name: finance-me
+        tag: "1.0"
+        build:
+          path: "{{ playbook_dir }}"
+        source: build
+
+    - name: Run FinanceMe container
+      community.docker.docker_container:
+        name: finance-me
+        image: finance-me:1.0
+        state: started
+        restart_policy: always
+        published_ports:
+          - "8084:8081"
+
+    - name: Verify container is running
+      command: docker ps --filter "name=finance-me"
+      register: docker_status
+
+    - debug:
+        msg: "{{ docker_status.stdout }}"
