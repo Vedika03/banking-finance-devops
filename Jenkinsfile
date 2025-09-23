@@ -2,7 +2,8 @@ pipeline {
     agent any
 
     environment {
-        GIT_CREDENTIALS = 'git'             // Jenkins Git credentials ID
+        // Replace with your actual GitHub credentials ID in Jenkins
+        GIT_CREDENTIALS = 'git'
         DOCKER_IMAGE = 'financeme-banking:latest'
         APP_PORT = '8081'
     }
@@ -24,43 +25,35 @@ pipeline {
 
         stage('Run Tests') {
             steps {
-                sh 'mvn test || true'   // Ensure pipeline continues even if no tests exist
+                sh 'mvn test'
             }
             post {
                 always {
-                    script {
-                        // Safely try to publish test reports, even if none exist
-                        try {
-                            junit '**/target/surefire-reports/*.xml'
-                        } catch (err) {
-                            echo "No test report files found, skipping JUnit report."
-                        }
-                    }
+                    junit '**/target/surefire-reports/*.xml'
                 }
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh "sudo docker build -t ${DOCKER_IMAGE} ."
+                sh "docker build -t ${DOCKER_IMAGE} ."
             }
         }
 
         stage('Stop Existing Container') {
             steps {
-                sh '''#!/bin/bash
-                CONTAINER_ID=$(sudo docker ps -q -f name=financeme-banking)
-                if [ ! -z "$CONTAINER_ID" ]; then
-                    sudo docker stop $CONTAINER_ID
-                    sudo docker rm $CONTAINER_ID
+                sh """
+                if [ \$(docker ps -q -f name=financeme-banking) ]; then
+                    docker stop financeme-banking
+                    docker rm financeme-banking
                 fi
-                '''
+                """
             }
         }
 
         stage('Run Docker Container') {
             steps {
-                sh "sudo docker run -d -p ${APP_PORT}:${APP_PORT} --name financeme-banking ${DOCKER_IMAGE}"
+                sh "docker run -d -p ${APP_PORT}:${APP_PORT} --name financeme-banking ${DOCKER_IMAGE}"
             }
         }
     }
