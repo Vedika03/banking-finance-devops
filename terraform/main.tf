@@ -55,7 +55,7 @@ resource "aws_security_group" "rds_sg" {
     from_port   = 3306
     to_port     = 3306
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # ⚠️ Open to world (for testing) – tighten later!
+    cidr_blocks = ["0.0.0.0/0"] # ⚠️ Open for testing
   }
 
   egress {
@@ -67,14 +67,15 @@ resource "aws_security_group" "rds_sg" {
 }
 
 # RDS Instance
-resource "aws_db_instance" "bankingdb" {
+resource "aws_db_instance" "bankdb" {
+  identifier           = "bankdb-instance"
   allocated_storage    = 20
   engine               = "mysql"
   engine_version       = "8.0"
   instance_class       = "db.t3.micro"
-  db_name              = "bankingdb"
+  db_name              = "bankdb"
   username             = "admin"
-  password             = "YourSecurePassword123!"
+  password             = "bankdbpass"
   parameter_group_name = "default.mysql8.0"
   skip_final_snapshot  = true
 
@@ -84,5 +85,5 @@ resource "aws_db_instance" "bankingdb" {
 
 # Output RDS Endpoint
 output "rds_endpoint" {
-  value = aws_db_instance.bankingdb.endpoint
+  value = aws_db_instance.bankdb.endpoint
 }
