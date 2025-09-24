@@ -29,19 +29,21 @@ public class SeleniumTest {
     }
 
     @Test
-    public void testHomePageTitle() throws IOException {
-        driver.get("http://localhost:8081");
+    public void testPolicyPage() throws IOException {
+        // Hit the running container (update to 8081 if running without Docker)
+        driver.get("http://localhost:8084/accounts/viewPolicy/ACC2001");
 
-        // Print title
-        String title = driver.getTitle();
-        System.out.println("Page title: " + title);
+        // Get page source
+        String pageSource = driver.getPageSource();
+        System.out.println("Page source: " + pageSource);
 
         // Save screenshot
         File screenshot = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
-        Files.copy(screenshot.toPath(), Paths.get("target/screenshot.png"));
+        String filename = "target/screenshot-" + System.currentTimeMillis() + ".png";
+        Files.copy(screenshot.toPath(), Paths.get(filename));
 
-        // Dummy assertion to mark test as passed
-        assertTrue(true);
+        // Assert that response contains account number
+        assertTrue(pageSource.contains("ACC2001"), "Page should contain account number ACC2001");
     }
 
     @AfterAll
