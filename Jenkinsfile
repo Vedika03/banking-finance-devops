@@ -2,10 +2,10 @@ pipeline {
     agent any
 
     environment {
-        // Replace with your actual GitHub credentials ID in Jenkins
         GIT_CREDENTIALS = 'git'
-        DOCKER_IMAGE = 'financeme-banking:latest'
-        APP_PORT = '8081'
+        ANSIBLE_PLAYBOOK = 'ansible-playbook.yml'
+        INVENTORY_FILE = 'hosts.ini'
+        APP_PORT = '8084'
     }
 
     stages {
@@ -34,27 +34,11 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Run Ansible Playbook') {
             steps {
-                sh "docker build -t ${DOCKER_IMAGE} ."
-            }
-        }
-
-        stage('Stop Existing Container') {
-            steps {
-                sh '''
-                if [ $(docker ps -aq -f name=financeme-banking) ]; then
-                    docker stop financeme-banking || true
-                    docker rm financeme-banking || true
-                fi
-                '''
-            }
-        }
-
-
-        stage('Run Docker Container') {
-            steps {
-                sh "docker run -d -p ${APP_PORT}:${APP_PORT} --name financeme-banking ${DOCKER_IMAGE}"
+                sh """
+                    ansible-playbook -i ${INVENTORY_FILE} ${ANSIBLE_PLAYBOOK}
+                """
             }
         }
     }
