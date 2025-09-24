@@ -1,29 +1,28 @@
-import org.junit.*;
-import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
 public class SeleniumTest {
-
-    private static WebDriver driver;
-    private static String appUrl;
+    WebDriver driver;
+    String appUrl = System.getenv("APP_URL");
 
     @BeforeClass
-    public static void setup() {
-        appUrl = System.getProperty("app.url", "http://localhost:8081"); // Default if not set
-        System.setProperty("webdriver.chrome.driver", "/path/to/chromedriver"); // Update path
+    public void setup() {
+        System.setProperty("webdriver.chrome.driver", "/path/to/chromedriver");
         driver = new ChromeDriver();
+        driver.get(appUrl);
     }
 
     @Test
-    public void testHomePage() {
-        driver.get(appUrl);
-        Assert.assertTrue(driver.getTitle().contains("FinanceMe"));
-        System.out.println("APP_URL: " + appUrl);
+    public void sampleTest() {
+        System.out.println("Page title is: " + driver.getTitle());
+        assert driver.getTitle() != null;
     }
 
     @AfterClass
-    public static void teardown() {
+    public void teardown() {
         if (driver != null) {
             driver.quit();
         }

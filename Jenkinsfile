@@ -1,47 +1,27 @@
 pipeline {
     agent any
 
-    parameters {
-        choice(
-            name: 'ENVIRONMENT',
-            choices: ['local', 'qa', 'prod'],
-            description: 'Select the deployment environment'
-        )
-    }
-
     environment {
         GIT_CREDENTIALS = 'git'
-        DOCKER_IMAGE     = 'financeme-banking:latest'
-        APP_PORT         = '8081'
-        APP_URL          = ''
-        TARGET_ENV       = 'local'
+        DOCKER_IMAGE = 'financeme-banking:latest'
+        APP_PORT = '8081'
+        APP_URL = "http://localhost:${APP_PORT}"
     }
 
     stages {
-        stage('Set Environment Variables') {
-            steps {
-                script {
-                    if (params.ENVIRONMENT == "local") {
-                        env.APP_URL = "http://localhost:${APP_PORT}"
-                        env.TARGET_ENV = "local"
-                    } else if (params.ENVIRONMENT == "qa") {
-                        env.APP_URL = "http://qa.example.com"
-                        env.TARGET_ENV = "qa"
-                    } else if (params.ENVIRONMENT == "prod") {
-                        env.APP_URL = "http://prod.example.com"
-                        env.TARGET_ENV = "prod"
-                    }
-                    echo "Selected Environment: ${params.ENVIRONMENT}"
-                    echo "APP_URL set to: ${env.APP_URL}"
-                }
-            }
-        }
-
         stage('Checkout Code') {
             steps {
                 git branch: 'main',
                     url: 'https://github.com/Vedika03/banking-finance-devops.git',
                     credentialsId: "${GIT_CREDENTIALS}"
+            }
+        }
+
+        stage('Run Ansible Playbook') {
+            steps {
+                sh '''
+                ansible-playbook ansible-playbook.yml -e target_env=local -e app_url=${APP_URL}
+                '''
             }
         }
 
@@ -51,9 +31,9 @@ pipeline {
             }
         }
 
-        stage('Run Selenium Tests') {
+        stage('Run Tests') {
             steps {
-                sh "mvn test -Dapp.url=${APP_URL}"
+                sh "mvn test -Dtest=SeleniumTest"
             }
             post {
                 always {
@@ -62,9 +42,26 @@ pipeline {
             }
         }
 
-        stage('Run Ansible Playbook') {
+        stage('Build Docker Image') {
             steps {
-                sh "ansible-playbook ansible-playbook.yml -e target_env=${TARGET_ENV} -e app_url=${APP_URL}"
+                sh "docker build -t ${DOCKER_IMAGE} ."
+            }
+        }
+
+        stage('Stop Existing Container') {
+            steps {
+                sh '''
+                if [ $(docker ps -aq -f name=financeme-banking) ]; then
+                    docker stop financeme-banking || true
+                    docker rm financeme-banking || true
+                fi
+                '''
+            }
+        }
+
+        stage('Run Docker Container') {
+            steps {
+                sh "docker run -d -p ${APP_PORT}:${APP_PORT} --name financeme-banking ${DOCKER_IMAGE}"
             }
         }
     }
