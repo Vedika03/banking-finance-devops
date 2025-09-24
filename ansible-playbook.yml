@@ -1,8 +1,9 @@
 ---
 - name: Deploy FinanceMe Banking App
-  hosts: local
-  connection: local
+  hosts: "{{ target_env }}"
   become: true
+  vars:
+    app_url: "{{ app_url | default('http://localhost:8081') }}"
 
   tasks:
     - name: Ensure prerequisites are installed
@@ -17,7 +18,7 @@
         update_cache: yes
 
     - name: Add Docker GPG key
-      ansible.builtin.shell: |
+      shell: |
         mkdir -p /etc/apt/keyrings
         curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
       args:
@@ -64,6 +65,8 @@
         restart_policy: always
         published_ports:
           - "8084:8081"
+        env:
+          APP_URL: "{{ app_url }}"
 
     - name: Verify container is running
       command: docker ps --filter "name=finance-me"

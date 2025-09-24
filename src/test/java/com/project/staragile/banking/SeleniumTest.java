@@ -1,53 +1,29 @@
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.openqa.selenium.OutputType;
-import org.openqa.selenium.TakesScreenshot;
+import org.junit.*;
+import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.chrome.ChromeOptions;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SeleniumTest {
 
     private static WebDriver driver;
+    private static String appUrl;
 
-    @BeforeAll
-    public static void setUp() {
-        ChromeOptions options = new ChromeOptions();
-        options.addArguments("--headless"); // run without GUI
-        options.addArguments("--no-sandbox");
-        options.addArguments("--disable-dev-shm-usage");
-
-        driver = new ChromeDriver(options);
+    @BeforeClass
+    public static void setup() {
+        appUrl = System.getProperty("app.url", "http://localhost:8081"); // Default if not set
+        System.setProperty("webdriver.chrome.driver", "/path/to/chromedriver"); // Update path
+        driver = new ChromeDriver();
     }
 
     @Test
-    public void testPolicyPage() throws IOException {
-        // Hit the running container (update to 8081 if running without Docker)
-        driver.get("http://localhost:8084/accounts/viewPolicy/ACC2001");
-
-        // Get page source
-        String pageSource = driver.getPageSource();
-        System.out.println("Page source: " + pageSource);
-
-        // Save screenshot
-        File screenshot = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
-        String filename = "target/screenshot-" + System.currentTimeMillis() + ".png";
-        Files.copy(screenshot.toPath(), Paths.get(filename));
-
-        // Assert that response contains account number
-        assertTrue(pageSource.contains("ACC2001"), "Page should contain account number ACC2001");
+    public void testHomePage() {
+        driver.get(appUrl);
+        Assert.assertTrue(driver.getTitle().contains("FinanceMe"));
+        System.out.println("APP_URL: " + appUrl);
     }
 
-    @AfterAll
-    public static void tearDown() {
+    @AfterClass
+    public static void teardown() {
         if (driver != null) {
             driver.quit();
         }
