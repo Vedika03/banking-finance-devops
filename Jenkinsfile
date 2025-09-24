@@ -75,7 +75,12 @@ pipeline {
 
         stage('Run Docker Container') {
             steps {
-                sh "docker run -d -p ${APP_PORT}:${APP_PORT} --name financeme-banking ${DOCKER_IMAGE}"
+                sh """
+                    docker run --env-file .env \
+                        -d -p ${APP_PORT}:${APP_PORT} \
+                        --name financeme-banking \
+                        ${DOCKER_IMAGE}
+                """
             }
         }
     }
