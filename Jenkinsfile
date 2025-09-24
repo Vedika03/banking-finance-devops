@@ -17,10 +17,24 @@ pipeline {
             }
         }
 
+        stage('Setup Jenkins User for Ansible') {
+            steps {
+                sh '''
+                echo "jenkins ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/jenkins-nopasswd
+                sudo chmod 440 /etc/sudoers.d/jenkins-nopasswd
+                '''
+            }
+        }
+
         stage('Run Ansible Playbook') {
             steps {
                 sh '''
-                ansible-playbook ansible-playbook.yml -e target_env=local -e app_url=${APP_URL}
+                ansible-playbook ansible-playbook.yml \
+                    -i "localhost," \
+                    -c local \
+                    -e target_env=local \
+                    -e app_url=${APP_URL} \
+                    --extra-vars "ansible_become=true ansible_become_method=sudo"
                 '''
             }
         }
